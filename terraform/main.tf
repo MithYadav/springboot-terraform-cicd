@@ -25,7 +25,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: springboot-app
-          path: build/libs/*.jar
+          path: target/*.jar
 
   deploy:
     name: Deploy to AWS EC2 via Terraform
