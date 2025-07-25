@@ -18,11 +18,11 @@ jobs:
         with:
           java-version: '17'
 
-      - name: Build with Gradle
+      - name: Build with maven
         run: mvn clean package
 
       - name: Archive JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: springboot-app
           path: build/libs/*.jar
@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: springboot-app
           path: app/
