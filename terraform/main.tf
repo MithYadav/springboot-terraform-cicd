@@ -1,64 +1,33 @@
-name: CI/CD Pipeline
+provider "aws" {
+  region = "ap-south-1"
+}
 
-on:
-  push:
-    branches: [ main ]
+resource "tls_private_key" "deployer" {
+  algorithm = "RSA"
+}
 
-jobs:
-  build:
-    name: Build and Package Spring Boot App
-    runs-on: ubuntu-latest
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer"
+  public_key = tls_private_key.deployer.public_key_openssh
+}
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+resource "aws_instance" "springboot" {
+  ami                         = "ami-0c55b159cbfafe1f0" # Amazon Linux 2
+  instance_type               = "t2.micro"
+  key_name                    = aws_key_pair.deployer.key_name
+  associate_public_ip_address = true
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum update -y",
+      "sudo amazon-linux-extras install java-openjdk11 -y"
+    ]
 
-      - name: Build with maven
-        run: mvn clean package
-
-      - name: Archive JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: springboot-app
-          path: target/*.jar
-
-  deploy:
-    name: Deploy to AWS EC2 via Terraform
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: springboot-app
-          path: app/
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: terraform init
-
-      - name: Terraform Apply
-        working-directory: ./terraform
-        run: terraform apply -auto-approve
-
-      - name: Copy JAR to EC2
-        run: |
-          scp -o StrictHostKeyChecking=no -i ./terraform/deployer.pem app/*.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
-
-      - name: Start Spring Boot App
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ./terraform/deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
-          'nohup java -jar app.jar > app.log 2>&1 &'
-
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = tls_private_key.deployer.private_key_pem
+      host        = self.public_ip
+    }
+  }
+}
