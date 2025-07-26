@@ -97,20 +97,15 @@ jobs:
           terraform -chdir=terraform output -raw private_key >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Write and print deployer.pem to /tmp
+      - name: Save deployer.pem to /tmp
         run: |
-          echo "Fetching private key..."
-          PRIVATE_KEY=$(terraform output -raw private_key)
-          echo "$PRIVATE_KEY" > /tmp/deployer.pem
+          echo "Saving deployer.pem..."
+          printf "%s\n" "$PRIVATE_KEY" > /tmp/deployer.pem
           chmod 400 /tmp/deployer.pem
-          echo "✅ deployer.pem created successfully. Contents below:"
-          cat /tmp/deployer.pem
 
-
-
-      - name: Copy JAR to EC2 Instance
+      - name: Copy app.jar to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -i deployer.pem app/app.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
+        scp -o StrictHostKeyChecking=no -i /tmp/deployer.pem app/app.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
 
       - name: Run Spring Boot App on EC2
         run: |
