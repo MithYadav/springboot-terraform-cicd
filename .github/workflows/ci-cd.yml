@@ -52,6 +52,7 @@ jobs:
         run: |
           echo "Checking downloaded files..."
           ls -la app/
+        continue-on-error: true
 
       - name: Rename JAR (optional but clean)
         run: mv app/*.jar app/app.jar
