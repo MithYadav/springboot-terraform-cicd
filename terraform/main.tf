@@ -20,8 +20,13 @@ resource "aws_instance" "springboot" {
   provisioner "remote-exec" {
     inline = [
       "sudo yum update -y",
-      "sudo amazon-linux-extras install java-openjdk11 -y"
+      "sudo yum install -y wget",
+      "sudo rpm --import https://yum.corretto.aws/corretto.key",
+      "sudo curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo",
+      "sudo yum install -y java-17-amazon-corretto-devel",
+      "java -version"
     ]
+  }
 
     connection {
       type        = "ssh"
