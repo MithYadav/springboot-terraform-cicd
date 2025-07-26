@@ -97,10 +97,15 @@ jobs:
           terraform -chdir=terraform output -raw private_key >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: Write deployer.pem file
+      - name: Write and print deployer.pem
         run: |
-          echo "$PRIVATE_KEY" > deployer.pem
-          chmod 600 deployer.pem
+          echo "Fetching private key..."
+          PRIVATE_KEY=$(terraform output -raw private_key)
+          echo "$PRIVATE_KEY" > $GITHUB_WORKSPACE/deployer.pem
+          chmod 400 $GITHUB_WORKSPACE/deployer.pem
+          echo "✅ deployer.pem created successfully. Contents below:"
+          cat $GITHUB_WORKSPACE/deployer.pem
+
 
       - name: Copy JAR to EC2 Instance
         run: |
