@@ -12,7 +12,7 @@ resource "aws_key_pair" "deployer" {
 }
 
 resource "aws_security_group" "ssh_access" {
-  name        = "allow_ssh_mithilesh_test"
+  name        = "allow_ssh_mithilesh_CICD"
   description = "Allow SSH access"
 
   ingress {
