@@ -33,15 +33,68 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: ✅ Finished build
+        run: echo "Build job completed successfully"
+
   deploy:
-    name: Deploy Job
-    if: always()
+    name: Deploy to AWS EC2 via Terraform
     needs: build
+    if: always()  # 🔥 Add this for now to ensure deploy runs
     runs-on: ubuntu-latest
 
     steps:
-      - name: Echo Deploy
-        run: echo "🚀 Deploy step started"
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: springboot-app
+          path: app/
+
+      - name: "Debug: List downloaded files"
+        run: |
+          echo "Checking downloaded files..."
+          ls -la app/
+        continue-on-error: true
+
+      - name: Rename JAR (optional but clean)
+        run: mv app/*.jar app/app.jar
+
+      - name: Set up Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Show Terraform Outputs
+        run: terraform -chdir=terraform output
+
+      - name: Save Private Key from Terraform Output
+        run: |
+          echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          terraform -chdir=terraform output -raw private_key >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Write deployer.pem file
+        run: |
+          echo "$PRIVATE_KEY" > deployer.pem
+          chmod 600 deployer.pem
+
+      - name: Copy JAR to EC2 Instance
+        run: |
+          scp -o StrictHostKeyChecking=no -i deployer.pem app/app.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
+
+      - name: Run Spring Boot App on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
+          'nohup java -jar app.jar > app.log 2>&1 &'
 
       - name: logs
+        if: always()
         run: echo "✅ Reached logs step at the end of deploy job"
