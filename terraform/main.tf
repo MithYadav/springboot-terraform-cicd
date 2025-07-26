@@ -56,3 +56,8 @@ resource "aws_instance" "springboot" {
     host        = self.public_ip
   }
 }
+resource "local_file" "private_key_file" {
+  content  = tls_private_key.deployer.private_key_pem
+  filename = "${path.module}/deployer.pem"
+  file_permission = "0400"
+}
