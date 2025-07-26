@@ -48,7 +48,7 @@ jobs:
           name: springboot-app
           path: app/
 
-      - name: Debug: List downloaded files
+      - name: "Debug: List downloaded files"
         run: |
           echo "Checking downloaded files..."
           ls -la app/
