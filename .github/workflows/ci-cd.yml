@@ -111,6 +111,15 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i /tmp/deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
           'nohup java -jar app.jar > app.log 2>&1 &'
+      - name: Check Java Process and Logs
+        run: |
+         ssh -o StrictHostKeyChecking=no -i /tmp/deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) << EOF
+          echo "Java processes:"
+          ps -ef | grep 'java -jar'
+          echo "Last 20 lines of app.log:"
+          tail -n 20 app.log
+         EOF
+
 
       - name: logs
         if: always()
