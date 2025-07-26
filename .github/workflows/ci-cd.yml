@@ -36,10 +36,12 @@ jobs:
   deploy:
     name: Deploy Job
     needs: build
+    if: always()
     runs-on: ubuntu-latest
+
     steps:
       - name: Echo Deploy
-        run: echo "Deploying..."
+        run: echo "🚀 Deploy step started"
+
       - name: logs
-        if: always()
         run: echo "✅ Reached logs step at the end of deploy job"
