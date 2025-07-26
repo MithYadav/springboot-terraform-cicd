@@ -35,4 +35,3 @@ resource "aws_instance" "springboot" {
       host        = self.public_ip
     }
   }
-}
