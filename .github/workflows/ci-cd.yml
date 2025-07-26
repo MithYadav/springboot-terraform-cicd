@@ -89,3 +89,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
           'nohup java -jar app.jar > app.log 2>&1 &'
+      - name: logs
+        if: always()
+        run: echo "✅ Reached logs step at the end of deploy job"
