@@ -79,6 +79,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
+      - name: Print deployer.pem content to logs
+        run: |
+          echo "Fetching private key..."
+          PRIVATE_KEY=$(terraform output -raw private_key)
+          echo "$PRIVATE_KEY" > deployer.pem
+          chmod 400 deployer.pem
+          echo "✅ deployer.pem created successfully. Contents below:"
+          cat deployer.pem
 
       - name: Show Terraform Outputs
         run: terraform -chdir=terraform output
