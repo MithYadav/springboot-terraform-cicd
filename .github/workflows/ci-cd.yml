@@ -19,7 +19,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Gradle
+      - name: Build with Maven
         run: mvn clean package
 
       - name: Archive JAR
@@ -43,7 +43,7 @@ jobs:
           name: springboot-app
           path: app/
 
-      - name: Setup Terraform
+      - name: Set up Terraform CLI
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
@@ -54,11 +54,26 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      - name: Copy JAR to EC2
-        run: |
-          scp -o StrictHostKeyChecking=no -i ./terraform/deployer.pem app/*.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
+      - name: Show Terraform Outputs
+        run: terraform -chdir=terraform output
 
-      - name: Start Spring Boot App
+      - name: Save Private Key from Terraform Output
+        id: save_key
         run: |
-          ssh -o StrictHostKeyChecking=no -i ./terraform/deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
+          echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+          terraform -chdir=terraform output -raw private_key >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Write deployer.pem file
+        run: |
+          echo "$PRIVATE_KEY" > deployer.pem
+          chmod 600 deployer.pem
+
+      - name: Copy JAR to EC2 Instance
+        run: |
+          scp -o StrictHostKeyChecking=no -i deployer.pem app/*.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
+
+      - name: Run Spring Boot App on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i deployer.pem ec2-user@$(terraform -chdir=terraform output -raw instance_ip) \
           'nohup java -jar app.jar > app.log 2>&1 &'
