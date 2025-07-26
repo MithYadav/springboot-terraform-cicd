@@ -11,11 +11,32 @@ resource "aws_key_pair" "deployer" {
   public_key = tls_private_key.deployer.public_key_openssh
 }
 
+resource "aws_security_group" "ssh_access" {
+  name        = "allow_ssh"
+  description = "Allow SSH access"
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # ⚠️ Open to all — secure this in production
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_instance" "springboot" {
   ami                         = "ami-0d0ad8bb301edb745" # Amazon Linux 2
   instance_type               = "t2.micro"
   key_name                    = aws_key_pair.deployer.key_name
   associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.ssh_access.id]
 
   provisioner "remote-exec" {
     inline = [
@@ -28,10 +49,10 @@ resource "aws_instance" "springboot" {
     ]
   }
 
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = tls_private_key.deployer.private_key_pem
-      host        = self.public_ip
-    }
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = tls_private_key.deployer.private_key_pem
+    host        = self.public_ip
   }
+}
