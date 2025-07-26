@@ -21,6 +21,7 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean package
+        continue-on-error: false
 
       - name: List JAR files
         run: ls -la target/
@@ -30,11 +31,12 @@ jobs:
         with:
           name: springboot-app
           path: target/*.jar
+          if-no-files-found: error
+          retention-days: 1
 
   deploy:
     name: Deploy to AWS EC2 via Terraform
     needs: build
-    if: success()
     runs-on: ubuntu-latest
 
     steps:
@@ -47,8 +49,11 @@ jobs:
           name: springboot-app
           path: app/
 
-      - name: Verify Downloaded JAR
+      - name: Debug: List downloaded files
         run: ls -la app/
+
+      - name: Rename JAR (optional but clean)
+        run: mv app/*.jar app/app.jar
 
       - name: Set up Terraform CLI
         uses: hashicorp/setup-terraform@v3
@@ -77,7 +82,7 @@ jobs:
 
       - name: Copy JAR to EC2 Instance
         run: |
-          scp -o StrictHostKeyChecking=no -i deployer.pem app/*.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
+          scp -o StrictHostKeyChecking=no -i deployer.pem app/app.jar ec2-user@$(terraform -chdir=terraform output -raw instance_ip):app.jar
 
       - name: Run Spring Boot App on EC2
         run: |
