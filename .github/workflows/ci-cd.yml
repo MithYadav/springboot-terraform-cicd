@@ -35,8 +35,8 @@ jobs:
 
   deploy:
     name: Deploy Job
-    needs: build
     if: always()
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
